@@ -10,20 +10,18 @@ jobs:
     name: Python HTML Scraping (Selenium/BS4)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
-
-      - name: Install ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
+          install-chromedriver: true
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
@@ -32,7 +30,7 @@ jobs:
         run: python src/Web_scraping_with_Python.py
 
       - name: Upload scraped data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-scrape-data
           path: data/
@@ -42,10 +40,10 @@ jobs:
     name: Python GraphQL Query
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -56,7 +54,7 @@ jobs:
         run: python src/query_wastewater_python.py
 
       - name: Upload query results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-graphql-data
           path: data/
@@ -65,16 +63,18 @@ jobs:
   r-scrape:
     name: R HTML Scraping (rvest)
     runs-on: ubuntu-latest
+    container:
+      image: rocker/tidyverse:4.4
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Setup R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: '4.4'
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y libxml2-dev libcurl4-openssl-dev libssl-dev
 
-      - name: Setup renv
-        uses: r-lib/actions/setup-renv@v2
+      - name: Restore renv packages
+        run: |
+          Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
+          Rscript -e "renv::restore()"
 
       - name: Run R scraping script
         run: Rscript src/Web_scraping_with_R.R
@@ -89,16 +89,18 @@ jobs:
   r-graphql:
     name: R GraphQL Query
     runs-on: ubuntu-latest
+    container:
+      image: rocker/tidyverse:4.4
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: '4.4'
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev
 
-      - name: Setup renv
-        uses: r-lib/actions/setup-renv@v2
+      - name: Restore renv packages
+        run: |
+          Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
+          Rscript -e "renv::restore()"
 
       - name: Run R GraphQL query script
         run: Rscript src/query_wastewater_R.R

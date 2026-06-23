@@ -9,13 +9,13 @@ variables:
 
 python-scrape:
   stage: scrape
-  image: python:3.12
+  image: python:3.12-slim
   before_script:
-    - apt-get update && apt-get install -y wget gnupg2 unzip
+    - apt-get update && apt-get install -y --no-install-recommends wget gnupg2 unzip curl
     - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
     - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-    - apt-get update && apt-get install -y google-chrome-stable
-    - pip install -r requirements.txt
+    - apt-get update && apt-get install -y --no-install-recommends google-chrome-stable
+    - pip install --no-cache-dir -r requirements.txt
   script:
     - python src/Web_scraping_with_Python.py
   artifacts:
@@ -25,9 +25,9 @@ python-scrape:
 
 r-scrape:
   stage: scrape
-  image: r-base:4.4
+  image: rocker/tidyverse:4.4
   before_script:
-    - apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+    - apt-get update && apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libssl-dev
     - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
     - Rscript -e "renv::restore()"
   script:
@@ -41,9 +41,9 @@ r-scrape:
 
 python-graphql:
   stage: graphql
-  image: python:3.12
+  image: python:3.12-slim
   before_script:
-    - pip install -r requirements.txt
+    - pip install --no-cache-dir -r requirements.txt
   script:
     - python src/query_wastewater_python.py
   artifacts:
@@ -53,9 +53,9 @@ python-graphql:
 
 r-graphql:
   stage: graphql
-  image: r-base:4.4
+  image: rocker/tidyverse:4.4
   before_script:
-    - apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+    - apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev
     - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
     - Rscript -e "renv::restore()"
   script:
