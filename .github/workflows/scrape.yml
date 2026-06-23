@@ -20,7 +20,7 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v2
         with:
-          chrome-version: stable
+          chrome-version: 149.0.7827.155
           install-chromedriver: true
 
       - name: Install Python dependencies
