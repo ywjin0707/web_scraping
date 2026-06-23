@@ -1,0 +1,111 @@
+name: Web Scraping CI Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Mondays at 06:00 UTC
+
+jobs:
+  python-scrape:
+    name: Python HTML Scraping (Selenium/BS4)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run HTML scraping script
+        run: python src/Web_scraping_with_Python.py
+
+      - name: Upload scraped data
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-scrape-data
+          path: data/
+          retention-days: 30
+
+  python-graphql:
+    name: Python GraphQL Query
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run GraphQL query script
+        run: python src/query_wastewater_python.py
+
+      - name: Upload query results
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-graphql-data
+          path: data/
+          retention-days: 30
+
+  r-scrape:
+    name: R HTML Scraping (rvest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4'
+
+      - name: Setup renv
+        uses: r-lib/actions/setup-renv@v2
+
+      - name: Run R scraping script
+        run: Rscript src/Web_scraping_with_R.R
+
+      - name: Upload scraped data
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-scrape-data
+          path: data/
+          retention-days: 30
+
+  r-graphql:
+    name: R GraphQL Query
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4'
+
+      - name: Setup renv
+        uses: r-lib/actions/setup-renv@v2
+
+      - name: Run R GraphQL query script
+        run: Rscript src/query_wastewater_R.R
+
+      - name: Upload query results
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-graphql-data
+          path: data/
+          retention-days: 30

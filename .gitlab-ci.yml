@@ -1,0 +1,66 @@
+stages:
+  - scrape
+  - graphql
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# --- HTML Scraping Jobs ---
+
+python-scrape:
+  stage: scrape
+  image: python:3.12
+  before_script:
+    - apt-get update && apt-get install -y wget gnupg2 unzip
+    - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+    - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+    - apt-get update && apt-get install -y google-chrome-stable
+    - pip install -r requirements.txt
+  script:
+    - python src/Web_scraping_with_Python.py
+  artifacts:
+    paths:
+      - data/
+    expire_in: 30 days
+
+r-scrape:
+  stage: scrape
+  image: r-base:4.4
+  before_script:
+    - apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+    - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
+    - Rscript -e "renv::restore()"
+  script:
+    - Rscript src/Web_scraping_with_R.R
+  artifacts:
+    paths:
+      - data/
+    expire_in: 30 days
+
+# --- GraphQL Jobs ---
+
+python-graphql:
+  stage: graphql
+  image: python:3.12
+  before_script:
+    - pip install -r requirements.txt
+  script:
+    - python src/query_wastewater_python.py
+  artifacts:
+    paths:
+      - data/
+    expire_in: 30 days
+
+r-graphql:
+  stage: graphql
+  image: r-base:4.4
+  before_script:
+    - apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+    - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
+    - Rscript -e "renv::restore()"
+  script:
+    - Rscript src/query_wastewater_R.R
+  artifacts:
+    paths:
+      - data/
+    expire_in: 30 days
