@@ -1,7 +1,6 @@
 # Import libraries
 library(tidyverse)
 library(rvest) # Basic web scraping with R
-library(writexl) # Export excel files
 
 # Ensure output directory exists
 dir.create("data", showWarnings = FALSE, recursive = TRUE)
