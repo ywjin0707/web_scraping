@@ -1,6 +1,30 @@
+# Output data
+data/
+!data/.gitkeep
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# R
+renv/library/
+renv/staging/
+renv/cellar/
 .Rhistory
 .RData
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Selenium
 chromedriver.exe
+
+# Legacy
 covid_data.xlsx
-venv
-data
+
+# Presentation rendered output
+presentation/slides.html
+presentation/*_files/
