@@ -68,14 +68,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install system dependencies
-        run: apt-get update && apt-get install -y libxml2-dev libcurl4-openssl-dev libssl-dev
-
-      - name: Restore renv packages
-        run: |
-          Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
-          Rscript -e "renv::restore()"
-
       - name: Run R scraping script
         run: Rscript src/Web_scraping_with_R.R
 
@@ -93,14 +85,6 @@ jobs:
       image: rocker/tidyverse:4.4
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install system dependencies
-        run: apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev
-
-      - name: Restore renv packages
-        run: |
-          Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
-          Rscript -e "renv::restore()"
 
       - name: Run R GraphQL query script
         run: Rscript src/query_wastewater_R.R
