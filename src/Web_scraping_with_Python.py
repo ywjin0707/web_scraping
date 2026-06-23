@@ -3,21 +3,34 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import os
 import pandas as pd
 import requests
 import csv
+
+# Ensure output directory exists
+os.makedirs("data", exist_ok=True)
+
+# Configure headless Chrome for CI environments
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--window-size=1920,1080")
 
 
 # Attempt 1: Load dynamic webpage and pull resulting html code
 
 url = "https://health-infobase.canada.ca/respiratory-virus-surveillance/influenza.html"
 
-## Create driver object
-driver = webdriver.Chrome()
+## Create driver object with headless options
+driver = webdriver.Chrome(options=chrome_options)
 
 ## Use get method to open url in chrome
 driver.get(url)
@@ -72,8 +85,8 @@ for i, table in enumerate(tables):
 
 url = "https://health-infobase.canada.ca/respiratory-virus-surveillance/influenza.html"
 
-## Create driver object
-driver = webdriver.Chrome()
+## Create driver object with headless options
+driver = webdriver.Chrome(options=chrome_options)
 
 ## Use get method to open url in chrome
 driver.get(url)
