@@ -1,0 +1,243 @@
+---
+title: "CI Pipelines for Reproducible Web Scraping"
+subtitle: "Automating Public Health Data Collection with GitHub Actions & GitLab CI"
+format:
+  revealjs:
+    theme: default
+    slide-number: true
+    transition: fade
+    code-line-numbers: true
+    highlight-style: github
+author: ""
+date: today
+---
+
+## Motivation
+
+### Why automate data collection?
+
+- Public health surveillance requires **regular, timely** data updates
+- Manual downloads are error-prone and hard to audit
+- Reproducibility demands documented, version-controlled workflows
+
+### Why CI/CD?
+
+- Scheduled execution without human intervention
+- Consistent environments (no "works on my machine")
+- Artifact storage provides data lineage
+
+---
+
+## Example 1: HTML Scraping
+
+### Tools
+
+| Language | Library | Use Case |
+|----------|---------|----------|
+| Python | Selenium + BeautifulSoup | Dynamic JS-rendered pages |
+| R | rvest | Static HTML tables |
+
+### Target
+
+[Canada Respiratory Virus Surveillance](https://health-infobase.canada.ca/respiratory-virus-surveillance/influenza.html)
+
+- Tables rendered via JavaScript
+- Pagination requires browser interaction
+
+---
+
+## Example 1: Python Implementation
+
+```python
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from bs4 import BeautifulSoup
+
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+
+driver = webdriver.Chrome(options=chrome_options)
+driver.get(url)
+
+# Interact with pagination to get all rows
+next_btn = section.find_element(
+    By.CSS_SELECTOR, "a.paginate_button.next"
+)
+driver.execute_script("arguments[0].click();", next_btn)
+```
+
+---
+
+## Example 1: Challenges
+
+- **Dynamic content** — Tables load via JavaScript; static `requests.get()` won't work
+- **Headless browsers in CI** — Must configure `--headless`, `--no-sandbox`, `--disable-dev-shm-usage`
+- **Fragile selectors** — Website redesigns break CSS selectors
+- **Pagination** — Need to click through pages to collect all data
+- **Rate limiting** — Respectful delays between requests
+
+---
+
+## Example 2: GraphQL API
+
+### Structured queries to PHAC Wastewater Infobase
+
+- **Endpoint:** `https://api-ipa.hc-sc.gc.ca/wastewater/`
+- **No API key required** — Public data
+- **Predictable schema** — No parsing HTML
+
+```graphql
+{
+  Infobase {
+    Date
+    Location
+    region
+    viral_load
+    seven_day_rolling_avg
+    pruid
+  }
+}
+```
+
+---
+
+## Example 2: Implementation
+
+### Python (`requests` + `pandas`)
+
+```python
+response = requests.post(
+    endpoint,
+    json={"query": query},
+    headers={"Content-Type": "application/json"}
+)
+df = pd.DataFrame(response.json()["data"]["Infobase"])
+df.to_csv("data/wastewater_infobase.csv", index=False)
+```
+
+### R (`httr2` + `jsonlite`)
+
+```r
+resp <- request(endpoint) |>
+  req_body_json(list(query = query)) |>
+  req_perform()
+records <- fromJSON(resp_body_string(resp))$data$Infobase
+write.csv(records, "data/wastewater_infobase_r.csv")
+```
+
+---
+
+## Reproducibility
+
+### Python: `venv` + `requirements.txt`
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### R: `renv` + `renv.lock`
+
+```r
+renv::restore()  # Installs exact package versions
+```
+
+**Key principle:** Lock dependency versions so results are identical regardless of when/where code runs.
+
+---
+
+## GitHub Actions
+
+```yaml
+name: Web Scraping CI Pipeline
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly
+
+jobs:
+  python-scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - uses: browser-actions/setup-chrome@v1
+      - run: pip install -r requirements.txt
+      - run: python src/Web_scraping_with_Python.py
+      - uses: actions/upload-artifact@v4
+```
+
+---
+
+## GitLab CI
+
+```yaml
+stages:
+  - scrape
+  - graphql
+
+python-scrape:
+  stage: scrape
+  image: python:3.12
+  before_script:
+    - apt-get install -y google-chrome-stable
+    - pip install -r requirements.txt
+  script:
+    - python src/Web_scraping_with_Python.py
+  artifacts:
+    paths: [data/]
+```
+
+Docker images provide isolated, reproducible environments.
+
+---
+
+## Demo / Results
+
+### Sample outputs
+
+| Script | Output | Records |
+|--------|--------|---------|
+| `Web_scraping_with_Python.py` | `data/table_*.csv` | ~12 tables |
+| `Web_scraping_with_R.R` | `data/covid_data.csv` | Country-level stats |
+| `query_wastewater_python.py` | `data/wastewater_infobase.csv` | Wastewater viral load |
+| `query_wastewater_R.R` | `data/wastewater_infobase_r.csv` | Same data via R |
+
+### Pipeline artifacts
+
+- Downloadable from GitHub Actions / GitLab CI
+- 30-day retention policy
+- Versioned by run timestamp
+
+---
+
+## Comparison: Scraping vs. API
+
+| Dimension | HTML Scraping | GraphQL API |
+|-----------|--------------|-------------|
+| **Reliability** | Fragile (layout changes break it) | Stable (schema-based) |
+| **Maintenance** | High (selector updates) | Low (query unchanged) |
+| **Speed** | Slow (browser rendering) | Fast (direct data) |
+| **Setup** | Complex (Chrome + drivers) | Simple (HTTP POST) |
+| **Data coverage** | Any visible content | Only exposed fields |
+| **Auth** | Usually none | Sometimes API keys |
+
+---
+
+## Lessons & Next Steps
+
+### Lessons learned
+
+- Always prefer APIs when available — scraping is a last resort
+- Headless Chrome in CI needs explicit flags (`--no-sandbox`)
+- `renv` and `venv` are essential for reproducibility across environments
+- Artifact retention policies prevent storage bloat
+
+### Next steps
+
+- Add data validation checks (schema, row counts)
+- Integrate with a data warehouse or dashboard
+- Add alerting on pipeline failures
+- Explore other public health data APIs
