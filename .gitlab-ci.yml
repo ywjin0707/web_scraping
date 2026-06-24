@@ -28,8 +28,6 @@ r-scrape:
   image: rocker/tidyverse:4.4
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libssl-dev
-    - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
-    - Rscript -e "renv::restore()"
   script:
     - Rscript src/Web_scraping_with_R.R
   artifacts:
@@ -56,8 +54,6 @@ r-graphql:
   image: rocker/tidyverse:4.4
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev
-    - Rscript -e "install.packages('renv', repos='https://cloud.r-project.org')"
-    - Rscript -e "renv::restore()"
   script:
     - Rscript src/query_wastewater_R.R
   artifacts:
