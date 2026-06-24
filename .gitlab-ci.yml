@@ -1,39 +1,5 @@
 stages:
-  - scrape
   - graphql
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-
-# --- HTML Scraping Jobs ---
-
-python-scrape:
-  stage: scrape
-  image: python:3.12-slim
-  before_script:
-    - apt-get update && apt-get install -y --no-install-recommends wget gnupg2 unzip curl
-    - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-    - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-    - apt-get update && apt-get install -y --no-install-recommends google-chrome-stable
-    - pip install --no-cache-dir -r requirements.txt
-  script:
-    - python src/Web_scraping_with_Python.py
-  artifacts:
-    paths:
-      - data/
-    expire_in: 30 days
-
-r-scrape:
-  stage: scrape
-  image: rocker/tidyverse:4.4
-  before_script:
-    - apt-get update && apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libssl-dev
-  script:
-    - Rscript src/Web_scraping_with_R.R
-  artifacts:
-    paths:
-      - data/
-    expire_in: 30 days
 
 # --- GraphQL Jobs ---
 
