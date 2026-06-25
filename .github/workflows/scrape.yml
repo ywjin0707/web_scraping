@@ -60,24 +60,6 @@ jobs:
           path: data/
           retention-days: 30
 
-  r-scrape:
-    name: R HTML Scraping (rvest)
-    runs-on: ubuntu-latest
-    container:
-      image: rocker/tidyverse:4.4
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Run R scraping script
-        run: Rscript src/Web_scraping_with_R.R
-
-      - name: Upload scraped data
-        uses: actions/upload-artifact@v4
-        with:
-          name: r-scrape-data
-          path: data/
-          retention-days: 30
-
   r-graphql:
     name: R GraphQL Query
     runs-on: ubuntu-latest
