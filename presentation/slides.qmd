@@ -1,75 +1,125 @@
 ---
-title: "CI Pipelines for Reproducible Web Scraping"
-subtitle: "Automating Public Health Data Collection with GitHub Actions & GitLab CI"
+title: "Automation of Routine Data Scraping using CI/CD"
+subtitle: "GitHub Actions & GitLab CI"
+execute:
+  eval: false
 format:
   revealjs:
-    theme: default
+    theme: white
     slide-number: true
-    transition: fade
     code-line-numbers: true
     highlight-style: github
+    embed-resources: true
 author: ""
 date: today
 ---
 
-## Motivation
+## Learning Objectives
+::: {.incremental}
+- Discover what CI/CD is and specifically how it can be used for automation
+- Go through examples of using CI for routine data scraping
+- Tips, tricks, and lessons learned
+:::
 
+
+## Disclaimer
+
+- Code repository was forked from web scraping presentation by Matthew Hunt back in April 👏
+- Additional work on the forked repository was done with assistance from LLM 🤖
+- Outline of this presentation was also created by LLM 🤖
+
+
+## Motivations
 ### Why automate data collection?
 
 - Public health surveillance requires **regular, timely** data updates
 - Manual downloads are error-prone and hard to audit
 - Reproducibility demands documented, version-controlled workflows
 
-### Why CI/CD?
+- It's just painful to have to run the same thing over and over again
+
+
+## What is CI/CD?^[https://github.com/resources/articles/ci-cd]
+
+- Stands for "Continuous Integration" and "Continuous Deployment"
+- Tools & practices for enhancing the speed and reliability of software development cycle (build, test, deploy)
+- In practice, it can be used to automate anything as long as it is feasible
+
+
+## CI/CD Pipeline
+### What it is intended for
+```{mermaid}
+%%| eval: true
+flowchart LR
+  Plan --> Code
+  Code --> Build
+  Build --> Test
+  Test --> Release
+  Release --> Deploy
+  Deploy --> Monitor
+  Monitor --> Plan
+```
+
+### What I use it for
+```{mermaid}
+%%| eval: true
+flowchart LR
+  Code --> Action[Automated job]
+  Action --> Pull[Get job results]
+  Pull --> Integrate[Use job results]
+```
+
+
+## How it works
+![](https://suresoft.gitlab-pages.rz.tu-bs.de/workshop-website/_images/ci-gitlab.JPG)
+```{mermaid}
+%%| eval: true
+flowchart LR
+  Code --> Remote[GitLab/GitHub]
+  Remote --|trigger|--> Job
+  Job --> Runner
+  Runner <--> Artifacts
+  Artifacts --> Ingest
+```
+
+
+## Why CI/CD?
 
 - Scheduled execution without human intervention
 - Consistent environments (no "works on my machine")
 - Artifact storage provides data lineage
 
----
+
+## Pre-requisites
+
+::: {.incremental}
+- Check if you have a GitHub/GitLab runner instance available
+- Generate read_api personal access token (PAT) from GitHub/GitLab
+- Job artifacts are enabled
+- Check Feasibility
+- Security compliance
+:::
+
+## Feasibility
+
+GitLab.com CI/CD limits (may differ for each platform/instance)
+
+- 100MB per job artifact
+- 400 compute minutes per month per project
+- \# of jobs, pipeline triggers, etc.
+
+Runner must be able to access everything it needs for the job 
+
+
+## Security compliance
+
+- Make sure you are not transferring protected data to runner instances hosted outside the Agency!
+- Even if you are using CI on and on-prem instance of GitLab, refrain from using it to handle protected data, especially when using docker containers. 
+
 
 ## Example 1: HTML Scraping
 
-### Tools
-
-| Language | Library | Use Case |
-|----------|---------|----------|
-| Python | Selenium + BeautifulSoup | Dynamic JS-rendered pages |
-| R | rvest | Static HTML tables |
-
-### Target
-
-[Canada Respiratory Virus Surveillance](https://health-infobase.canada.ca/respiratory-virus-surveillance/influenza.html)
-
-- Tables rendered via JavaScript
-- Pagination requires browser interaction
-
----
-
-## Example 1: Python Implementation
-
-```python
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-
-driver = webdriver.Chrome(options=chrome_options)
-driver.get(url)
-
-# Interact with pagination to get all rows
-next_btn = section.find_element(
-    By.CSS_SELECTOR, "a.paginate_button.next"
-)
-driver.execute_script("arguments[0].click();", next_btn)
-```
-
----
-
-## Example 1: Challenges
+Example by Matthew Hunt back in April to scrape tables off [Canada Respiratory Virus Surveillance](https://health-infobase.canada.ca/respiratory-virus-surveillance/influenza.html)
 
 - **Dynamic content** — Tables load via JavaScript; static `requests.get()` won't work
 - **Headless browsers in CI** — Must configure `--headless`, `--no-sandbox`, `--disable-dev-shm-usage`
@@ -77,11 +127,8 @@ driver.execute_script("arguments[0].click();", next_btn)
 - **Pagination** — Need to click through pages to collect all data
 - **Rate limiting** — Respectful delays between requests
 
----
 
-## Example 2: GraphQL API
-
-### Structured queries to PHAC Wastewater Infobase
+## Example 2: GraphQL queries to PHAC Wastewater Infobase^[https://github.com/PHACDataHub/wastewater-graphql]
 
 - **Endpoint:** `https://api-ipa.hc-sc.gc.ca/wastewater/`
 - **No API key required** — Public data
@@ -100,25 +147,14 @@ driver.execute_script("arguments[0].click();", next_btn)
 }
 ```
 
----
 
 ## Example 2: Implementation
 
-### Python (`requests` + `pandas`)
-
-```python
-response = requests.post(
-    endpoint,
-    json={"query": query},
-    headers={"Content-Type": "application/json"}
-)
-df = pd.DataFrame(response.json()["data"]["Infobase"])
-df.to_csv("data/wastewater_infobase.csv", index=False)
-```
-
 ### R (`httr2` + `jsonlite`)
 
-```r
+```{r}
+#| echo: true
+
 resp <- request(endpoint) |>
   req_body_json(list(query = query)) |>
   req_perform()
@@ -126,27 +162,12 @@ records <- fromJSON(resp_body_string(resp))$data$Infobase
 write.csv(records, "data/wastewater_infobase_r.csv")
 ```
 
----
 
-## Reproducibility
+## Configuring GitLab CI pipelines or GitHub Actions workflows
 
-### Python: `venv` + `requirements.txt`
+- Consult the docs
+- or ask AI to help you 🤖
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### R: `renv` + `renv.lock`
-
-```r
-renv::restore()  # Installs exact package versions
-```
-
-**Key principle:** Lock dependency versions so results are identical regardless of when/where code runs.
-
----
 
 ## GitHub Actions
 
@@ -169,75 +190,90 @@ jobs:
       - uses: actions/upload-artifact@v4
 ```
 
----
-
 ## GitLab CI
 
 ```yaml
-stages:
-  - scrape
-  - graphql
-
-python-scrape:
-  stage: scrape
-  image: python:3.12
+r-graphql:
+  stage: graphql
+  image: rocker/tidyverse:4.4
   before_script:
-    - apt-get install -y google-chrome-stable
-    - pip install -r requirements.txt
+    - apt-get update && apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev
   script:
-    - python src/Web_scraping_with_Python.py
+    - Rscript src/query_wastewater_R.R
   artifacts:
-    paths: [data/]
+    paths:
+      - data/
+    expire_in: 30 days
 ```
 
 Docker images provide isolated, reproducible environments.
 
----
 
-## Demo / Results
-
-### Sample outputs
-
-| Script | Output | Records |
-|--------|--------|---------|
-| `Web_scraping_with_Python.py` | `data/table_*.csv` | ~12 tables |
-| `Web_scraping_with_R.R` | `data/covid_data.csv` | Country-level stats |
-| `query_wastewater_python.py` | `data/wastewater_infobase.csv` | Wastewater viral load |
-| `query_wastewater_R.R` | `data/wastewater_infobase_r.csv` | Same data via R |
-
-### Pipeline artifacts
+## Pipeline artifacts
 
 - Downloadable from GitHub Actions / GitLab CI
-- 30-day retention policy
+- Retention policy
 - Versioned by run timestamp
 
----
+## How to retrieve the results
 
-## Comparison: Scraping vs. API
+There is a package called `gitlabr` which has a number of issues.
+Alternatively, just use API requests - it's actually pretty simple!
 
-| Dimension | HTML Scraping | GraphQL API |
-|-----------|--------------|-------------|
-| **Reliability** | Fragile (layout changes break it) | Stable (schema-based) |
-| **Maintenance** | High (selector updates) | Low (query unchanged) |
-| **Speed** | Slow (browser rendering) | Fast (direct data) |
-| **Setup** | Complex (Chrome + drivers) | Simple (HTTP POST) |
-| **Data coverage** | Any visible content | Only exposed fields |
-| **Auth** | Usually none | Sometimes API keys |
+1. Get a personal access token generated with read_api
+2. Store your token in an environment file NOT in your script
+3. Use API to figure out the project id and job id
+4. Use API to retrieve the job artifact
 
----
 
-## Lessons & Next Steps
+## Function for staging artifacts
+```{r}
+#| echo: true
+artifacts_to_staging <- function(
+    job_id,
+    token=gl_token,
+    gitlab_url="https://gitlab.cscscience.ca", 
+    project_id=1662L
+    ){
+  require(utils)
+  require(httr2)
+  
+  filename <- tempfile(fileext=".zip")
+  on.exit(file.remove(filename))
+  
+  request(gitlab_url) |>
+    req_url_path_append("api", "v4", "projects", project_id, "jobs", job_id, "artifacts") |>
+    req_headers(
+      "PRIVATE-TOKEN" = token
+    ) |>
+    req_perform() |> 
+    resp_body_raw() |> 
+    writeBin(filename)
+  
+  utils::unzip(filename, junkpaths=TRUE, exdir="staging", overwrite = TRUE)
+}
 
-### Lessons learned
+# unzip artifacts to staging folder
+artifacts_to_staging(52406L)
+```
 
-- Always prefer APIs when available — scraping is a last resort
-- Headless Chrome in CI needs explicit flags (`--no-sandbox`)
-- `renv` and `venv` are essential for reproducibility across environments
-- Artifact retention policies prevent storage bloat
 
-### Next steps
+## Next steps 
 
-- Add data validation checks (schema, row counts)
-- Integrate with a data warehouse or dashboard
-- Add alerting on pipeline failures
-- Explore other public health data APIs
+- Automate more data collection!
+- Ingest into a database/datalake
+
+
+## Lessons learned
+
+- Using docker (rocker) will make your life easier and the pipeline more reproducible
+  - depending on the runner setup, you don't have a choice and must use docker
+- Don't expect a successful run the first time, especially with LLM
+- If using GitHub actions, check action versions
+- Check your artifacts!
+
+## Acknowledgements
+
+- Matthew Hunt
+- NMLB SIS team
+- PHAC R User Group
